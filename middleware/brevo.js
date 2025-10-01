@@ -3,7 +3,7 @@ const axios = require('axios');
 const mailer = async (options) => {
     try {
         const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
-            sender: { email: process.env.APP_USER, name: "QuickChow" },
+            sender: { email: process.env.BREVO_SENDER_EMAIL, name: process.env.BREVO_SENDER_NAME },
             to: [{ email: options.email }],
             subject: options.subject,
             htmlContent: options.html
