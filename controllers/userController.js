@@ -39,7 +39,7 @@ exports.signUp = async (req, res) => {
         await user.save();
      
         const emailOptions = {
-            to: user.email,
+            email: user.email,
             subject: "Your QuickChow Verification Code",
             html: signUpTemplate(signupOtp, user.firstName),
         };
