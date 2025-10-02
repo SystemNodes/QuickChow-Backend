@@ -8,8 +8,8 @@ exports.createProduct = async (req, res) => {
 
         if (!productName || !price || !restaurantId || !categoryId ) {
             return res.status(400).json({
-                message: "The following fields are all required: productName, price, restaurantId, categoryId";
-            })
+                message: "The following fields are all required: productName, price, restaurantId, categoryId"
+            });
         };
 
         if (!req.file) {
@@ -128,6 +128,4 @@ exports.getProduct = async (req, res) => {
         });
     }
 };
-  
-  
-  
+

@@ -1,47 +1,60 @@
-const Order = require('../models/orderModel');
-const Cart = require('../models/cartModel');
+const orderModel = require('../models/orderModel');
+const cartModel = require('../models/cartModel');
 
-// Create order from cart
 exports.createOrder = async (req, res) => {
   try {
-    const cart = await Cart.findOne({ user: req.user.id }).populate("items.product");
+    const userId = req.user.id;
+    const { deliveryAddress, notes } = req.body;
 
+    const cart = await cartModel.findOne({ userId }).populate("items.product");
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
     const orderItems = cart.items.map(item => ({
-      product: item.product._id,
+      productId: item.product._id,
       quantity: item.quantity,
       price: item.product.price
     }));
 
-    const totalAmount = orderItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const totalAmount = orderItems.reduce(
+      (sum, i) => sum + i.price * i.quantity,
+      0
+    );
 
-    const order = new Order({
-      user: req.user.id,
+    const order = new orderModel({
+      userId,
       items: orderItems,
       totalAmount,
-      deliveryAddress: req.body.deliveryAddress,
-      notes: req.body.notes
+      deliveryAddress,
+      notes
     });
 
     await order.save();
 
-    // Clear cart
-    await Cart.findOneAndUpdate({ user: req.user.id }, { items: [] });
+    await cartModel.findOneAndUpdate({ userId }, { items: [] });
 
-    res.status(201).json(order);
+    res.status(201).json({
+      message: "Order created successfully",
+      data: order
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Get logged-in user's orders
 exports.getMyOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user.id }).populate("items.product transaction");
-    res.json(orders);
+    const userId = req.user.id;
+    const orders = await orderModel
+      .find({ userId })
+      .populate("items.productId")
+      .populate("transactionId");
+
+    res.status(200).json({
+      message: "Orders fetched successfully",
+      data: orders
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

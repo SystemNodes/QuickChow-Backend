@@ -8,17 +8,12 @@ exports.addToCart = async (req, res) => {
 
         const product = await productModel.findById(productId);
         if (!product) {
-            return res.status(404).json({
-                message: "Product not found" 
-            });
+            return res.status(404).json({ message: "Product not found" });
         }
 
-        let cart = await cartModel.findOne({userId});
+        let cart = await cartModel.findOne({ userId });
         if (!cart) {
-            cart = new cartModel({ 
-                userId, 
-                items: [] 
-            });
+            cart = new cartModel({ userId, items: [] });
         }
 
         const itemIndex = cart.items.findIndex(
@@ -30,10 +25,7 @@ exports.addToCart = async (req, res) => {
         if (itemIndex >= 0) {
             cart.items[itemIndex].quantity += qty;
         } else {
-            cart.items.push({ 
-                product: productId, 
-                quantity: qty 
-            });
+            cart.items.push({ product: productId, quantity: qty });
         }
 
         await cart.save();
@@ -49,37 +41,30 @@ exports.addToCart = async (req, res) => {
         });
 
     } catch (err) {
-        res.status(500).json({ 
-            error: err.message 
-        });
+        res.status(500).json({ error: err.message });
     }
 };
 
 exports.getCart = async (req, res) => {
     try {
         const userId = req.user.id;
-  
         const cart = await cartModel
             .findOne({ userId })
             .populate("items.product", "productName price productImage");
-  
+
         if (!cart) {
-            return res.status(404).json({ 
-                message: "Cart is empty" 
-            });
+            return res.status(404).json({ message: "Cart is empty" });
         }
-  
+
         res.status(200).json({
             message: "Cart found",
             data: cart
         });
 
     } catch (err) {
-        res.status(500).json({ 
-            error: err.message 
-        });
+        res.status(500).json({ error: err.message });
     }
-  };
+};
 
 exports.removeFromCart = async (req, res) => {
     try {
@@ -88,9 +73,7 @@ exports.removeFromCart = async (req, res) => {
 
         const cart = await cartModel.findOne({ userId });
         if (!cart) {
-            return res.status(404).json({ 
-                message: "Cart not found" 
-            });
+            return res.status(404).json({ message: "Cart not found" });
         }
 
         cart.items = cart.items.filter(
@@ -104,9 +87,7 @@ exports.removeFromCart = async (req, res) => {
             data: cart
         });
     } catch (err) {
-        res.status(500).json({ 
-            error: err.message 
-        });
+        res.status(500).json({ error: err.message });
     }
 };
 
@@ -122,13 +103,9 @@ exports.clearCart = async (req, res) => {
         cart.items = [];
         await cart.save();
 
-        res.status(200).json({ 
-            message: "Cart cleared" 
-        });
-        
+        res.status(200).json({ message: "Cart cleared" });
+
     } catch (err) {
-        res.status(500).json({ 
-            error: err.message 
-        });
+        res.status(500).json({ error: err.message });
     }
 };
