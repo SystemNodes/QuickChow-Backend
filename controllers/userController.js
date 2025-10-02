@@ -231,7 +231,7 @@ exports.resendResetOTP = async (req, res) => {
             await mailer({
                 to: user.email,
                 subject: "Your password reset OTP",
-                html: (resetOtp, user.firstName)
+                html: verificationTemplate(resetOtp, user.firstName)
             });
   
             return res.status(200).json({ 
