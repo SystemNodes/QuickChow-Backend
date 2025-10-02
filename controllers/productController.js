@@ -18,6 +18,19 @@ exports.createProduct = async (req, res) => {
             });
         };
 
+        const existingProduct = await productModel.findOne({
+            productName: productName.trim(),
+            restaurantId,
+            categoryId,
+        });
+
+        if (existingProduct) {
+            return res.status(409).json({
+              message:
+                "A product with this name already exists in the same restaurant and category",
+            });
+        }
+
         const filePath = req.file.path;
         const result = await cloudinary.uploader.upload(filePath, {
           folder: "products"

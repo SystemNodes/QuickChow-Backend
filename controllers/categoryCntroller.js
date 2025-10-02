@@ -7,7 +7,18 @@ exports.createCategory = async (req, res) => {
       if (!categoryName || !restaurantId) {
         return res.status(400).json({ message: "Category Name and restaurant ID are required" });
       }
+
+      const existingCategory = await categoryModel.findOne({
+        categoryName: category.trim(),
+        restaurantId
+      });
   
+      if (existingCategory) {
+        return res.status(409).json({
+          message: "Category already exists for this restaurant"
+        });
+      }
+
       const category = await categoryModel.create({ categoryName, restaurantId });
       res.status(201).json({
         message: "Category created successfully",

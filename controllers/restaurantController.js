@@ -18,6 +18,17 @@ exports.createRestaurant = async (req, res) => {
       });
     }
 
+    const existingRestaurant = await restaurantModel.findOne({
+      restaurantName: restaurantName.trim(),
+      location: location.trim()
+    });
+
+    if (existingRestaurant) {
+      return res.status(409).json({
+        message: "A restaurant with this name already exists at this location",
+      });
+    }
+
     const filePath = req.file.path;
     const result = await cloudinary.uploader.upload(filePath, {
       folder: "restaurants"
