@@ -7,7 +7,7 @@ const {
     resendResetOTP,
     verifyResetOTP,
     resetPassword,
-    updatePassword     
+    updatePassword
 } = require('../controllers/userController');
 
 const authenticateJWT = require('../middleware/authMiddleware');

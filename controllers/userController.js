@@ -5,7 +5,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { 
     signUpTemplate, 
-    verificationTemplate 
+    verificationTemplate, 
+    resetPasswordTemplate
 } = require('../utils/emailTemplates');
 
 exports.signUp = async (req, res) => {
@@ -63,27 +64,32 @@ exports.signUp = async (req, res) => {
 
 exports.verifySignupOTP = async (req, res) => {
     try {
-        const {email, otp} = req.body;
-        const user = await userModel.findOne({
-            email: email.toLowerCase()
-        });
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            return res.status(400).json({ message: "Email and OTP are required" });
+        }
+
+        const user = await userModel.findOne({ email: email.toLowerCase() });
 
         if (!user) {
-            return res.status(400).json({
-                message: "user not found"
-            });
+            return res.status(404).json({ message: "User not found" });
         }
 
         if (user.isVerified) {
-            return res.status(400).json({
-                message: "User already verified, please proceed to login"
-            });
+            return res.status(400).json({ message: "User already verified. Please login." });
         }
 
-        if (user.signupOtp !== otp || Date.now() > signupOtpExpires) {
-            return res.status(400).json({
-                message: "Invalid OTP or Expired OTP"
-            });
+        if (!user.signupOtp || !user.signupOtpExpires) {
+            return res.status(400).json({ message: "No OTP found or OTP expired. Please request a new one." });
+        }
+
+        if (String(user.signupOtp) !== String(otp)) {
+            return res.status(400).json({ message: "Invalid OTP" });
+        }
+
+        if (Date.now() > new Date(user.signupOtpExpires).getTime()) {
+            return res.status(400).json({ message: "OTP expired. Please request a new one." });
         }
 
         user.isVerified = true;
@@ -91,34 +97,27 @@ exports.verifySignupOTP = async (req, res) => {
         user.signupOtpExpires = undefined;
         await user.save();
 
-        res.status(200).json({
-            message: "User verified successfully"
-        });
-        
+        res.status(200).json({ message: "User verified successfully" });
     } catch (error) {
-        res.status(500).json({
-            error: error.message
-        });
+        res.status(500).json({ error: error.message });
     }
 };
 
+
+
 exports.resendSignupOTP = async (req, res) => {
     try {
-        const {email} = req.body;
-        const user = await userModel.findOne({
-            email: email.toLowerCase()
-        });
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ message: "Email is required" });
+
+        const user = await userModel.findOne({ email: email.toLowerCase() });
 
         if (!user) {
-            return res.status(404).json({
-                message: "User not found"
-            });
+            return res.status(404).json({ message: "User not found" });
         }
 
         if (user.isVerified) {
-            return res.status(400).json({
-                message: "User already verified, please proceed to login"
-            });
+            return res.status(400).json({ message: "User already verified, please login." });
         }
 
         const otp = generateOTP();
@@ -131,21 +130,17 @@ exports.resendSignupOTP = async (req, res) => {
         const emailOptions = {
             email: user.email,
             subject: "Your new verification OTP",
-            html: verificationTemplate(signupOtp, user.firstName)
-        }
+            html: verificationTemplate(otp, user.firstName)
+        };
 
         await mailer(emailOptions);
 
-        res.status(200).json({
-            message: "OTP resent successfully. Check your email."
-        });
-        
+        res.status(200).json({ message: "OTP resent successfully. Check your email." });
     } catch (error) {
-        res.status(500).json({
-            error: error.message
-        });
+        res.status(500).json({ error: error.message });
     }
 };
+
   
 exports.login = async (req, res) => {
     try {
@@ -193,14 +188,8 @@ exports.login = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        const user = await userModel.findOne({ 
-            email: email.toLowerCase() 
-        });
-        if (!user) {
-            return res.status(404).json({ 
-                message: "User not found" 
-            });
-        }
+        const user = await userModel.findOne({ email: email.toLowerCase() });
+        if (!user) return res.status(404).json({ message: "User not found" });
 
         const otp = generateOTP();
         const otpExpires = Date.now() + 10 * 60 * 1000;
@@ -212,19 +201,15 @@ exports.forgotPassword = async (req, res) => {
         await mailer({
             to: user.email,
             subject: "Reset your Password",
-            html: resetPasswordTemplate(resetOtp, user.firstName)
+            html: resetPasswordTemplate(otp, user.firstName)
         });
 
-        res.status(200).json({ 
-            message: "Password reset OTP sent" 
-        });
-
+        res.status(200).json({ message: "Password reset OTP sent" });
     } catch (error) {
-        res.status(500).json({ 
-            error: error.message 
-        });
+        res.status(500).json({ error: error.message });
     }
 };
+
 
 exports.resendResetOTP = async (req, res) => {
     try {
@@ -246,7 +231,7 @@ exports.resendResetOTP = async (req, res) => {
             await mailer({
                 to: user.email,
                 subject: "Your password reset OTP",
-                html: resetPasswordTemplate(resetOtp, user.firstName)
+                html: (resetOtp, user.firstName)
             });
   
             return res.status(200).json({ 
