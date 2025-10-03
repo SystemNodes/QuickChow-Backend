@@ -1,7 +1,8 @@
 const transactionModel = require('../models/transactionModel');
+const userModel = require('../models/userModel');
 const axios = require('axios');
 
-const KORA_API = process.env.KORA_API_SECRET
+const KORA_API = process.env.KORA_API_SECRET;
 
 exports.initializePayment = async (req, res) => {
     try {
@@ -13,6 +14,10 @@ exports.initializePayment = async (req, res) => {
             });
         }
 
+        const user = await userModel.findById(userId);
+        console.log("User fetched:", user);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
         const ref = `QuickChow-${Date.now()}-${Math.floor(Math.random()*1000)}`
 
         const paymentData = {
@@ -20,10 +25,12 @@ exports.initializePayment = async (req, res) => {
             currency: "NGN",
             reference: ref,
             customer: {
-              name: req.body.name,
-              email: req.body.email
+              name: `${user.firstName} ${user.lastName}`,
+              email: user.email
             },
           };
+          console.log("Payment payload sent to Korapay:", paymentData);
+
 
         const response = await axios.post('https://api.korapay.com/merchant/api/v1/charges/initialize', paymentData,{
             headers: {
@@ -31,6 +38,7 @@ exports.initializePayment = async (req, res) => {
                 Authorization: `Bearer ${KORA_API}`
             }
         });
+        console.log("Korapay response:", response.data);
 
         const transaction = new transactionModel({
             userId,
